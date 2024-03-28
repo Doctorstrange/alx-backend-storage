@@ -76,22 +76,22 @@ class Cache:
         return int(data)
 
     def replay(method: Callable) -> None:
-        """Replays the call history of a given method, formatted as specified."""
+        """Replays the call history of a given method,
+        formatted as specified."""
 
         key_inputs = f"{method.__qualname__}:inputs"
         key_outputs = f"{method.__qualname__}:outputs"
 
-        # Retrieve calls count, inputs, and outputs from Redis
-        calls_count = method.__self__._redis.get(method.__qualname__)  # Access Redis client via method's instance
+        calls_count = method.__self__._redis.get(method.__qualname__)
         if calls_count is None:
             calls_count = 0
         else:
             calls_count = int(calls_count)
-        inputs = method.__self__._redis.lrange(key_inputs, 0, -1)  # Access lists via method's instance
+        inputs = method.__self__._redis.lrange(key_inputs, 0, -1)
         outputs = method.__self__._redis.lrange(key_outputs, 0, -1)
 
-        # Print formatted output
         print(f"{method.__qualname__} was called {calls_count} times:")
         for input_str, output_str in zip(inputs, outputs):
-            inputs_str = repr(ast.literal_eval(input_str))  # Reconstruct input arguments for visual clarity
-            print(f"{method.__qualname__}(*{inputs_str}) -> {output_str.decode()}")
+            inputs_str = repr(ast.literal_eval(input_str))
+            print(f"{method.__qualname__}(*{inputs_str}) ->
+                    {output_str.decode()}")
