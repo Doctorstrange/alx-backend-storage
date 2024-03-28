@@ -75,17 +75,23 @@ class Cache:
         """ Converts bytes to integers """
         return int(data)
 
-    def replay(fn: Callable) -> None:
-        """ Check redis for how many times a function was called and display:
-                - How many times it was called
-                - Function args and output for each call
-        """
-        client = redis.Redis()
-        calls = client.get(fn.__qualname__).decode('utf-8')
-        inputs = [input.decode('utf-8') for input in
-                client.lrange(f'{fn.__qualname__}:inputs', 0, -1)]
-        outputs = [output.decode('utf-8') for output in
-                client.lrange(f'{fn.__qualname__}:outputs', 0, -1)]
-        print(f'{fn.__qualname__} was called {calls} times:')
-        for input, output in zip(inputs, outputs):
-            print(f'{fn.__qualname__}(*{input}) -> {output}')
+    def replay(method: Callable) -> None:
+        """Replays the call history of a given method, formatted as specified."""
+
+        key_inputs = f"{method.__qualname__}:inputs"
+        key_outputs = f"{method.__qualname__}:outputs"
+
+        # Retrieve calls count, inputs, and outputs from Redis
+        calls_count = method.__self__._redis.get(method.__qualname__)  # Access Redis client via method's instance
+        if calls_count is None:
+            calls_count = 0
+        else:
+            calls_count = int(calls_count)
+        inputs = method.__self__._redis.lrange(key_inputs, 0, -1)  # Access lists via method's instance
+        outputs = method.__self__._redis.lrange(key_outputs, 0, -1)
+
+        # Print formatted output
+        print(f"{method.__qualname__} was called {calls_count} times:")
+        for input_str, output_str in zip(inputs, outputs):
+            inputs_str = repr(ast.literal_eval(input_str))  # Reconstruct input arguments for visual clarity
+            print(f"{method.__qualname__}(*{inputs_str}) -> {output_str.decode()}")
