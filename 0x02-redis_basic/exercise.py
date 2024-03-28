@@ -28,13 +28,22 @@ def call_history(method: Callable) -> Callable:
     return wrapper
 
 
+def count_calls(method: Callable) -> Callable:
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        key = method.__qualname__
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+    return wrapper
+
+
 class Cache:
     def __init__(self) -> None:
         self._redis = redis.Redis()
         self._redis.flushdb()
 
-    @call_history
-    def store(self, data: Union[str, bytes, int, float]) -> str:
+    @count_calls
+    def store(self, data: Union[str, bytes,  int,  float]) -> str:
         """ Stores data in redis with randomly generated key """
         key = str(uuid.uuid4())
         client = self._redis
@@ -42,7 +51,9 @@ class Cache:
         return key
 
     def get(self, key: str, fn: Optional[Callable] = None) -> Any:
-        """ Gets key's value from redis and converts result byte into correct data type """
+        """ Gets key's value from redis and converts
+            result byte  into correct data type
+        """
         client = self._redis
         value = client.get(key)
         if not value:
@@ -62,4 +73,3 @@ class Cache:
     def get_int(self, data: bytes) -> int:
         """ Converts bytes to integers """
         return int(data)
-
