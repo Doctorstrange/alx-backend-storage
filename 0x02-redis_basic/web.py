@@ -16,9 +16,9 @@ def cache_with_expiry(seconds):
     def decorator(func):
         @wraps(func)
         def wrapper(url):
-            cached_result = redis_client.get(url)
-            if cached_result:
-                return cached_result.decode('utf-8')
+            cache_back = redis_client.get(url)
+            if cache_back:
+                return cache_back.decode('utf-8')
             result = func(url)
             redis_client.setex(url, seconds, result)
             return result
