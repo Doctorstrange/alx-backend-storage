@@ -8,33 +8,32 @@ import redis
 from functools import wraps
 import time
 
-
+# Initialize Redis connection
 redis_client = redis.Redis()
 
+
 def cache_with_expiry(seconds):
-    """ Decorator for get_page
-    """
     def decorator(func):
         @wraps(func)
-        def wrapper(*args, **kwargs):
-            url = args[0]
-            cache_back = redis_client.get(url)
-            if cache_back:
-                return cache_back.decode('utf-8')
-            result = func(*args, **kwargs)
+        def wrapper(url):
+            cached_result = redis_client.get(url)
+            if cached_result:
+                return cached_result.decode('utf-8')
+            result = func(url)
             redis_client.setex(url, seconds, result)
             return result
         return wrapper
     return decorator
 
+
 def track_access_count(func):
     @wraps(func)
-    def wrapper(*args, **kwargs):
-        url = args[0]
+    def wrapper(url):
         count_key = f"count:{url}"
         redis_client.incr(count_key)
-        return func(*args, **kwargs)
+        return func(url)
     return wrapper
+
 
 @cache_with_expiry(10)
 @track_access_count
