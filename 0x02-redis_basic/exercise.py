@@ -5,32 +5,45 @@ the Redis client as a private variable named _redis
 
 import redis
 import uuid
-from typing import Union, Callable
+from typing import Any, Callable, Optional, Union
 
 
 class Cache:
-    def __init__(self):
+    def __init__(self) -> None:
         self._redis = redis.Redis()
         self._redis.flushdb()
 
-    def store(self, data: Union[str, bytes, int, float]) -> str:
+
+    def store(self, data: Union[str, bytes,  int,  float]) -> str:
+        """ Stores data in redis with randomly generated key
+        """
         key = str(uuid.uuid4())
-        self._redis.set(key, data)
+        client = self._redis
+        client.set(key, data)
         return key
 
-    def get(self, key: str, fn: Callable = None) ->
-    Union[str, bytes, int, float, None]:
-        if not self._redis.exists(key):
-            return None
-        data = self._redis.get(key)
-        if fn:
-            return fn(data)
-        return data
+    def get(self, key: str, fn: Optional[Callable] = None) -> Any:
+        """ Gets key's value from redis and converts
+            result byte  into correct data type
+        """
+        client = self._redis
+        value = client.get(key)
+        if not value:
+            return
+        if fn is int:
+            return self.get_int(value)
+        if fn is str:
+            return self.get_str(value)
+        if callable(fn):
+            return fn(value)
+        return value
 
-    def get_str(self, key: str) -> Union[str, None]:
-        return self.get(key, fn=lambda d: d.decode("utf-8")
-                        if isinstance(d, bytes) else None)
+    def get_str(self, data: bytes) -> str:
+        """ Converts bytes to string
+        """
+        return data.decode('utf-8')
 
-    def get_int(self, key: str) -> Union[int, None]:
-        return self.get(key, fn=lambda d: int(d)
-                        if isinstance(d, bytes) else None)
+    def get_int(self, data: bytes) -> int:
+        """ Converts bytes to integers
+        """
+        return int(data)
